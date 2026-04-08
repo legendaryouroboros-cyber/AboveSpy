@@ -1,11 +1,22 @@
-FROM php:8.2-apache
+FROM php:8.2-fpm-alpine
+
+RUN apk add --no-cache nginx
 
 COPY . /var/www/html/
 
-RUN a2enmod rewrite \
-    && a2dismod mpm_event \
-    && a2enmod mpm_prefork
+RUN echo 'server { \
+    listen $PORT; \
+    root /var/www/html; \
+    index index.php; \
+    location / { try_files $uri $uri/ /index.php?$args; } \
+    location ~ \.php$ { \
+        fastcgi_pass 127.0.0.1:9000; \
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name; \
+        include fastcgi_params; \
+    } \
+}' > /etc/nginx/http.d/default.conf
 
-CMD sed -i "s/80/$PORT/g" /etc/apache2/ports.conf /etc/apache2/sites-enabled/000-default.conf && apache2-foreground
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
 
-EXPOSE 80
+CMD ["/start.sh"]
