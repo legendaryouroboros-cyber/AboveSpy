@@ -51,6 +51,8 @@ class Bot
             $this->state[$chatId . '_players'] = $row['players'];
             $this->state[$chatId . '_spies'] = $row['spies'];
             $this->state[$chatId . '_current'] = $row['current'];
+            $this->state[$chatId . '_word'] = $row['word'];
+            $this->state[$chatId . '_roles'] = json_decode($row['roles'], true);
         }
     }
 
@@ -62,6 +64,8 @@ class Bot
             'players' => $this->state[$chatId . '_players'] ?? null,
             'spies' => $this->state[$chatId . '_spies'] ?? null,
             'current' => $this->state[$chatId . '_current'] ?? 0,
+            'word' => $this->state[$chatId . '_word'] ?? null,
+            'roles' => json_encode($this->state[$chatId . '_roles'] ?? []),
         ]);
 
         $ch = curl_init($this->supabaseUrl . '/rest/v1/bot_state');
@@ -110,6 +114,10 @@ class Bot
             $spies = $this->state[$chatId . '_spies'];
 
             $this->game->create($players, $spies, $theme);
+
+            // сохраняем в state
+            $this->state[$chatId . '_word'] = $this->game->getWord();
+            $this->state[$chatId . '_roles'] = $this->game->getPlayers();
             $this->state[$chatId] = 'playing';
             $this->state[$chatId . '_current'] = 0;
 
@@ -178,9 +186,13 @@ class Bot
     private function onShowRole(string $chatId): void
     {
         $index = $this->state[$chatId . '_current'];
-        $role = $this->game->getRole($index);
+        $roles = $this->state[$chatId . '_roles'];
+        $word = $this->state[$chatId . '_word'];
 
-        $this->sendMessage($chatId, $role, Keyboard::done());
+        $role = $roles[$index];
+        $text = ($role === 'Шпион') ? 'Шпион' : $word;
+
+        $this->sendMessage($chatId, $text, Keyboard::done());
     }
 
     private function onDone(string $chatId): void
