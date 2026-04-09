@@ -107,6 +107,9 @@ class Bot
     {
         $data = $callback['data'];
         $chatId = $callback['message']['chat']['id'];
+        $messageId = $callback['message']['message_id'];
+
+        $this->removeKeyboard($chatId, $messageId);
 
         if (str_starts_with($data, 'theme_')) {
             $theme = str_replace('theme_', '', $data);
@@ -115,7 +118,6 @@ class Bot
 
             $this->game->create($players, $spies, $theme);
 
-            // сохраняем в state
             $this->state[$chatId . '_word'] = $this->game->getWord();
             $this->state[$chatId . '_roles'] = $this->game->getPlayers();
             $this->state[$chatId] = 'playing';
@@ -207,6 +209,23 @@ class Bot
         } else {
             $this->sendMessage($chatId, 'Передай телефон следующему игроку', Keyboard::showRole());
         }
+    }
+
+
+    private function removeKeyboard(string $chatId, int $messageId): void
+    {
+        $ch = curl_init('https://api.telegram.org/bot' . $this->token . '/editMessageReplyMarkup');
+        curl_setopt_array($ch, [
+            CURLOPT_POST => true,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_POSTFIELDS => [
+                'chat_id' => $chatId,
+                'message_id' => $messageId,
+                'reply_markup' => json_encode(['inline_keyboard' => []]),
+            ],
+        ]);
+        curl_exec($ch);
+        curl_close($ch);
     }
 
 }
