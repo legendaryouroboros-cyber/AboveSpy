@@ -200,7 +200,7 @@ class Bot
     private function onDone(string $chatId): void
     {
         $current = $this->state[$chatId . '_current'];
-        $total = $this->state[$chatId . '_players'];
+        $total = $this->state[ $chatId . '_players'];
 
         $current++;
         $this->state[$chatId . '_current'] = $current;
